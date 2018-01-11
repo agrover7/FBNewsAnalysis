@@ -7,6 +7,7 @@ class main(object):
         """The ID and app_code variables are personal information that should never be publically posted.
         As a result, I have removed mine from below. This login information is free and easy to create, though!
         Simply go to https://developers.facebook.com/ and click "Create a new app" at the top right corner """
+        
         ID = "XXXXXXXXXXXXXXXX"
         app_code = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # DO NOT SHARE WITH ANYONE!
         

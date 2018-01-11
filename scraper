@@ -1,0 +1,523 @@
+import os, newspaper, pylab, pandas, re, time, datetime, json
+from fileinput import filename
+from urllib.request import urlopen, Request
+from pip._vendor.distlib.compat import raw_input
+import unicodecsv as csv
+from textblob import TextBlob
+import matplotlib.pyplot as plt
+import numpy as np
+import csv as realCSV
+from scipy import stats
+
+
+class scraper():
+
+    def __init__(self, pages_of_interest, access_token, start_date, end_date):
+        self.pages_of_interest = pages_of_interest
+        self.access_token = access_token
+        self.start_date = start_date
+        self.end_date = end_date
+        self.fieldnames = ""
+        self.numRemoved = 0
+        
+    def reformatExcel(self, filename, totalProcessed):
+        #with open('{}.csv'.format(filename), 'wb') as file:
+        f=pandas.read_csv("todelete.csv") #error?
+        keep_col = ["fbpage_url_code", "status_message", "link_name","status_type","status_link", "status_published", "num_reactions",
+                        "num_comments", "num_shares", "num_likes", "num_loves",
+                        "num_wows", "num_hahas", "num_sads", "num_angrys",
+                        "num_special"]
+        new_f = f[keep_col]
+        #new_f.to_csv("{}.csv".format(filename), index=False)
+        new_f.to_csv("todelete1.csv", index=False)
+        #at this point, I have removed the status ID (which was generally
+        #not useful information for analysis purpose. 
+        #status type returned video if there was any type of video with the status,
+        #that's not what I want to analyze so I've fixed it by noting if a link is present in the code below
+        #also gets rid of blank lines
+        
+        self.createDictAnalysis(filename, totalProcessed) #filename
+
+
+    def createDictAnalysis(self, filename, totalProcessed):
+        storage = []
+        with open("todelete1.csv", mode='rb') as file:
+        #with open("todelete1.csv", mode='r') as file:
+            reader = csv.DictReader(file, fieldnames = range(30))  
+            for rows in reader:
+                storage.append(rows)
+            #for entry in storage:
+                #storage.remove(entry)
+                #break
+            renameCols = ["News Source", "Status Content", "Link Name", "Type of Status",
+                        "Status Link", "Date Published", "Total Reactions",
+                        "Comments", "Shares", "Likes", "Love Reacts",
+                        "Wow Reacts", "Haha Reacts", "Sad Reacts", "Angry Reacts",
+                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"]    
+            
+            position = 0;
+            for entry in storage:
+                while(position<20):     
+                    entry[position] = renameCols[position]
+                    position+=1
+
+            toDelete = []
+            i = 0
+
+            while(i < len(storage)):
+                if "http://" not in entry[1]: #to remove videos that don't have articles associated
+                    toDelete.append(entry)
+                elif "link" not in entry[3]:
+                    entry[3] = entry[3] + " w/ link"
+                i+=1
+                
+            i=0   
+            while(len(toDelete) > 0):
+                try:
+                    storage.remove(toDelete[0])
+                    toDelete.remove(toDelete[0])
+                    self.numRemoved +=1
+                except:
+                    toDelete.remove(toDelete[0])
+                    continue
+
+        
+        file.close()        
+             
+            #to remove the b and "" around the links, status, and article title now:
+        for entry in storage:
+            entry[4] = entry[4][2:-1]
+            entry[2] = entry[2][2:-1]
+            entry[1] = entry[1][2:-1]   
+                
+        listtoremove = []
+        for entry in storage:
+            statusContent = entry[1]
+            match = re.search("(?P<url>https?://[^\s]+)", statusContent)
+            if match is not None: 
+                entry[16] = match.group("url")
+            else:
+                listtoremove.append(entry)
+                #storage.remove(entry)
+               # self.numRemoved +=1
+                                
+        i = 0
+        value = ""
+        length = len(storage)
+        while (i < length):
+            if (storage[i][16] == None or storage[i][16] == "None"):
+                value = storage[i]
+                storage.remove(value)
+                self.numRemoved +=1   
+                length-=1
+            i+=1
+                            
+        removelength = len(listtoremove)
+        k = 0
+        tf = False
+        while k < removelength:
+            for entry in storage:
+                if listtoremove[k] in entry.values():
+                    tf = True
+                    break;
+            if tf == True:
+                storage.remove(listtoremove[k])
+                listtoremove.remove(listtoremove[k])
+                tf = False
+            k+=1
+            
+        finalstorage = [d for d in storage if d[16] != None]
+
+            
+        #print(finalstorage)
+                
+                #at this point, the 16th position in the arrays has the links
+        #os.remove("todelete1.csv")
+        self.getArticlesText(finalstorage, filename, totalProcessed)
+                            
+            
+    def getArticlesText(self, storage, filename, totalProcessed):
+        for entry in storage:
+            entry[17] = "0"
+        for entry in storage:
+            try:
+                url = entry[16]
+            except:
+                entry[17] = "0"
+                continue
+            
+            article = newspaper.Article(url, language="en")
+            
+            try:
+                article.download()
+                article.parse()
+                time.sleep(1)
+                text = article.text
+                entry[17]=text
+    
+            except:
+                continue
+            
+        i = 0
+        while i < len(storage):
+            if storage[i][17] == "0":
+                storage.remove(storage[i])
+                self.numRemoved+=1
+            i+=1
+        
+        self.sentimentAnalysis(storage, filename, totalProcessed)
+            
+    def sentimentAnalysis(self, storage, filename, totalProcessed):
+        for entry in storage:
+            blob = TextBlob(entry[17])
+            entry[18] = blob.sentiment     
+        
+        
+        for entry in storage:
+            if entry[18][0] == 0 and entry[18][1] == 0:
+                self.numRemoved+=1
+                storage.remove(entry)
+                
+        i = 0
+        while (i < len(storage)):
+            if storage[i][18][0] == 0.0:
+                self.numRemoved+=1
+                storage.remove(storage[i])
+            i+=1
+        
+        #to copy over sentiment and polarity
+        for entry in storage:
+            entry[19] = entry[18][1]
+            entry[18] = entry[18][0]    
+        self.writeToExcel(storage, filename, totalProcessed)
+                
+    def writeToExcel(self, storage, filename, totalProcessed):
+        renameCols = ["News Source", "Status Content", "Link Name", "Type of Status",
+                        "Status Link", "Date Published", "Total Reactions",
+                        "Comments", "Shares", "Likes", "Love Reacts",
+                        "Wow Reacts", "Haha Reacts", "Sad Reacts", "Angry Reacts",
+                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"]  
+
+
+        with open("todelete2.csv", 'wb') as file:
+            
+            writefile = csv.DictWriter(file, storage[0].keys())
+            writefile.writeheader()
+            writefile.writerows(storage)
+            
+            file.close()
+            
+        r = realCSV.reader(open("todelete2.csv", encoding="utf8"))
+        eachrow = [l for l in r]
+        
+        
+        for col in range(20):                                           
+            eachrow[0][col] = renameCols[col]
+            
+        #to remove blank lines so there aren't double blank lines
+            
+        #writer = csv.writer(open("{}.csv".format(filename), 'w'))
+        writer = csv.writer(open("{}.csv".format(filename), 'wb'))
+        writer.writerows(eachrow)
+        
+        
+        self.beginAnalysis(storage)  #otherwise, below the paragraph below
+
+        
+    def beginAnalysis(self, storage):
+        #To determine correlation between polarity/subjectivity (separately) and the distance from the election
+        #First, determining relationships between p/s for 9 months before and after the election
+        #Need to determine two regression lines for this before determining if there's a statistically significant difference
+        #between the two lines
+        electiondate = datetime.datetime.strptime("2016-11-08",'%Y-%m-%d').date()  #November 8 2016 election date
+        for entry in storage:
+            entry[20] = datetime.datetime.strptime(entry[5][:-9],'%Y-%m-%d').date()
+            entry[21] = (entry[20] - electiondate).days
+
+
+            
+        lengthlist = []
+        #Determine number of unique values:
+        for entry in storage:
+            lengthlist.append(entry[21])
+            
+        uniqueDates = len(set(lengthlist))
+        
+        analysisList = [dict() for x in range(uniqueDates)]
+        for i in range(uniqueDates):
+            analysisList[i][i] = [0,0,0,0,0,0,0,0,0,0]    #LIST OF ARBITRARY VALUE
+        
+        listOfUniques = list(set(lengthlist))
+        
+        
+        for i in range(uniqueDates):
+            analysisList[i][i][0] = listOfUniques[i]
+            for entry in storage:
+                if int(entry[21]) == int(listOfUniques[i]):
+                    analysisList[i][i][1] += float(entry[18])
+                    analysisList[i][i][2] +=1
+                    analysisList[i][i][3] += float(entry[19])
+           
+        
+        xCoords = []
+        yCoordsPolarity = []
+        yCoordsSubjectivity = []
+        for i in range(uniqueDates):
+            xCoords.append(analysisList[i][i][0])
+            yCoordsPolarity.append((analysisList[i][i][1]/analysisList[i][i][2]))
+            yCoordsSubjectivity.append((analysisList[i][i][3]/analysisList[i][i][2]))
+        
+        
+        
+        fig = plt.figure()
+
+        
+        
+        plt.plot(xCoords, yCoordsPolarity)
+        regression1 = np.polyfit(xCoords, yCoordsPolarity, 1)
+        slope1, intercept1, r_value1, p_value1, std_err1 = stats.linregress(xCoords, yCoordsPolarity)
+
+        
+        xmin= min(xCoords) - 5
+        xmax = max(xCoords) + 5
+        xaxis = range(xmin,xmax)
+        yaxis = [(slope1*var + intercept1) for var in xaxis]
+        #line of best fit
+        
+        plt.plot(xCoords,yCoordsPolarity, linestyle='None', marker= ".", color= "red", markersize=8)
+
+        fig.suptitle("Article Polarity x", fontsize=15)
+        plt.xlabel('Days After Election', fontsize=8)
+        plt.ylabel('Polarity', fontsize=8)
+        
+        plt.show()
+        fig = plt.figure()
+
+        #above is just to clear it
+        plt.plot(xCoords,yCoordsPolarity, linestyle='None', marker= ".", color= "red", markersize=8)
+        #scatterplot
+        plt.plot(xaxis, yaxis, "black")  
+        
+        
+        fig.suptitle("Article Polarity", fontsize=15)
+        plt.xlabel('Days After Election', fontsize=8)
+        plt.ylabel('Polarity', fontsize=8)
+        plt.show()
+        
+        pylab.show()
+
+
+        print("Polarity: ")
+        print("Slope: " + str(slope1) + " Intercept: " + str(intercept1) + " p-Value: " + str(p_value1) + " Standard Error: " + str(std_err1) + " r-value: " + str(r_value1))
+        
+        
+        print("Take screenshot and save image.")
+        wait = raw_input("Enter something to indicate you have done so, please.")
+        
+        regression2 = np.polyfit(xCoords, yCoordsSubjectivity, 1)   
+        slope1, intercept1, r_value1, p_value1, std_err1 = stats.linregress(xCoords, yCoordsSubjectivity)
+  
+
+        xaxis = range(xmin,xmax)
+        yaxis = [(slope1*var + intercept1) for var in xaxis]
+      
+        
+      
+        fig = plt.figure()
+        
+        plt.plot(xCoords,yCoordsSubjectivity, linestyle='None', marker= ".", color= "red", markersize=8)
+        #scatterplot
+        plt.plot(xaxis, yaxis, "black")  
+        
+        
+        fig.suptitle("Article Subjectivity", fontsize=15)
+        plt.xlabel('Days After Election', fontsize=8)
+        plt.ylabel('Subjectivity', fontsize=8)
+        plt.show()
+        
+        pylab.show()
+        
+        
+        print("Subjectivity:")
+        print("Slope: " + str(slope1) + " Intercept: " + str(intercept1) + " p-Value: " + str(p_value1) + " Standard Error: " + str(std_err1) + " r-value: " + str(r_value1))
+        
+        
+        pylab.show()
+        
+
+  
+    def request_data(self, url):
+        req = Request(url)
+        success = False
+        while success != True:
+            try:
+                response = urlopen(req)
+                if response.getcode() == 200:
+                    success = True
+            except Exception as capturedMessage:  #by capturing exception in this form, can look into its attributes (as in, print out message here)
+                print(capturedMessage)
+                time.sleep(3)  #pauses in instances of exceptions
+    
+                print("Error for: {}".format(url))
+    
+        return response.read()
+        
+    
+    
+    def reformat_text(self, text):
+        return text.translate({ 0x2018:0x27, 0x2019:0x27, 0x201C:0x22, 0x201D:0x22, 0xa0:0x20 }).encode('utf-8')
+    
+    
+    def getPageURL(self, api_url):
+    
+        appendtoURL = "&fields=message,link,created_time,type,name,id,comments.limit(0).summary(true),shares,reactions.limit(0).summary(true)"
+        return api_url + appendtoURL
+    
+    
+    def getStatusReactions(self, api_url):
+    
+        reaction_types = ['like', 'love', 'wow', 'haha', 'sad', 'angry']
+        reactions_dict = {} 
+    
+        for reaction_type in reaction_types:
+            fields = "&fields=reactions.type({}).limit(0).summary(total_count)".format(reaction_type.upper())
+    
+            url = api_url + fields
+    
+            data = json.loads(self.request_data(url))['data']
+    
+            data_processed = set()  # set() removes rare duplicates in statuses
+            for status in data:
+                id = status['id']
+                count = status['reactions']['summary']['total_count']
+                data_processed.add((id, count))
+    
+            for id, count in data_processed:
+                if id in reactions_dict:
+                    reactions_dict[id] = reactions_dict[id] + (count,)
+                else:
+                    reactions_dict[id] = (count,)
+    
+        return reactions_dict
+    
+    
+    def processStatus(self, status, fbpage_url_code):
+    
+    
+        status_id = status['id']
+        status_type = status['type']
+        
+        #To see if there is any content in the post:
+        status_message = '' if 'message' not in status else \
+            self.reformat_text(status['message'])
+        link_name = '' if 'name' not in status else \
+            self.reformat_text(status['name'])
+        status_link = '' if 'link' not in status else \
+            self.reformat_text(status['link'])
+
+        status_published = datetime.datetime.strptime(
+            status['created_time'], '%Y-%m-%dT%H:%M:%S+0000')
+        status_published = status_published + \
+            datetime.timedelta(hours=-5)  # EST
+        status_published = status_published.strftime(
+            '%Y-%m-%d %H:%M:%S') 
+    
+        num_reactions = 0 if 'reactions' not in status else \
+            status['reactions']['summary']['total_count']
+        num_comments = 0 if 'comments' not in status else \
+            status['comments']['summary']['total_count']
+        num_shares = 0 if 'shares' not in status else status['shares']['count']
+    
+        return (fbpage_url_code, status_id, status_message, link_name, status_type, status_link,
+                status_published, num_reactions, num_comments, num_shares)
+    
+  
+  
+    def scrapeStatus(self, pages_of_interest, access_token, start_date, end_date):
+        totalProcessed = 0
+        todelete = "todelete"
+        filename = raw_input("Please provide a file name: ")
+        
+        with open('{}.csv'.format(todelete), 'wb') as file:            
+            w = csv.writer(file)
+            
+            w.writerow(["fbpage_url_code", "status_id", "status_message", "link_name", "status_type",
+                        "status_link", "status_published", "num_reactions",
+                        "num_comments", "num_shares", "num_likes", "num_loves",
+                        "num_wows", "num_hahas", "num_sads", "num_angrys",
+                        "num_special"])
+            
+            
+            for fbpage_url_code in pages_of_interest:
+                          
+                has_next_page = True
+                numProcessed = 0
+                
+                scrape_starttime = datetime.datetime.now()
+                after = ''
+                base = "https://graph.facebook.com/v2.9"
+                node = "/{}/posts".format(fbpage_url_code)
+                
+                parameters = "/?limit={}&access_token={}".format(100, access_token)
+                since = "&since={}".format(start_date) if start_date \
+                    is not '' else ''
+                until = "&until={}".format(end_date) if end_date \
+                    is not '' else ''
+        
+                print("Scraping {} Facebook Page: {}\n".format(fbpage_url_code, scrape_starttime))
+        
+                while has_next_page:
+                    after = '' if after is '' else "&after={}".format(after)
+                    
+                    api_url = base + node + parameters + after + since + until
+        
+                    url = self.getPageURL(api_url)
+                    statuses = json.loads(self.request_data(url))
+                    reactions = self.getStatusReactions(api_url)
+        
+                    for status in statuses['data']:
+        
+                        # Ensure it is a status with the expected metadata
+                        if 'reactions' in status:
+                            status_data = self.processStatus(status, fbpage_url_code)
+                            reactions_data = reactions[status_data[1]]
+        
+                            num_special = status_data[7] - sum(reactions_data)
+                            w.writerow(status_data + reactions_data + (num_special,))
+        
+                        numProcessed += 1
+                        if numProcessed % 20 == 0:
+                            print("{} Statuses Processed: {}".format
+                                  (numProcessed, datetime.datetime.now()))
+        
+                    
+                    # if there is no next page, we're done.
+                    if 'paging' in statuses:
+                        after = statuses['paging']['cursors']['after']
+                    else:
+                        has_next_page = False
+        
+                totalProcessed +=numProcessed
+                print("\nDone! {} Statuses Processed in {} for page: {}".format(numProcessed, datetime.datetime.now() - scrape_starttime, fbpage_url_code))
+                print("")
+        
+        file.close()       
+        self.reformatExcel(filename, totalProcessed)
+        self.concludingInfo(totalProcessed, pages_of_interest)
+        
+        
+    def concludingInfo(self, totalProcessed, pages_of_interest):
+        print()        
+
+        print("You have processed a total of {} usable statuses from the following sources:".format(totalProcessed - self.numRemoved))
+        for source in pages_of_interest:
+            if(source != pages_of_interest[len(pages_of_interest)-1]):
+                print (source, end= ", ")
+            else:
+                print (source, end = "")
+        print("\n")
+        print(str(self.numRemoved) + " posts were deemed unsuitable for analysis.")
+        os.remove("todelete.csv")
+        os.remove("todelete1.csv")
+        os.remove("todelete2.csv")
+ 

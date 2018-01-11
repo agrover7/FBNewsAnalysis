@@ -1,0 +1,27 @@
+import scraper
+
+class main(object):
+
+    def __init__(self, scraper):
+    
+        """The ID and app_code variables are personal information that should never be publically posted.
+        As a result, I have removed mine from below. This login information is free and easy to create, though!
+        Simply go to https://developers.facebook.com/ and click "Create a new app" at the top right corner """
+        ID = "XXXXXXXXXXXXXXXX"
+        app_code = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # DO NOT SHARE WITH ANYONE!
+        
+        #enter dates as: year month day
+        start_date = "2016-11-08"
+        end_date = "2017-05-08"
+        
+        access_token = ID + "|" + app_code
+    
+        #Facebook url's are not case sensitive for this portion
+        #list can be edited to any number of Facebook pages (>= 1)
+        pages_of_interest = ["CNN", "NYTimes", "Breitbart", "MSNBC", "WSJ", "HuffPost", "Time", "ABCNews", "FoxNews", "YahooNews"]
+
+        
+        performScraping = scraper.scraper(pages_of_interest, access_token, start_date, end_date)
+        performScraping.scrapeStatus(pages_of_interest, access_token, start_date, end_date)
+         
+main(scraper)

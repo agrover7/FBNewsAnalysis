@@ -13,6 +13,9 @@ from scipy import stats
 class scraper():
 
     def __init__(self, pages_of_interest, access_token, start_date, end_date):
+        """constructor for the scraper, which takes in the list of news sources, 
+        user login information, and the date range between which to scrape posts"""
+        
         self.pages_of_interest = pages_of_interest
         self.access_token = access_token
         self.start_date = start_date
@@ -21,25 +24,25 @@ class scraper():
         self.numRemoved = 0
         
     def reformatExcel(self, filename, totalProcessed):
-        #with open('{}.csv'.format(filename), 'wb') as file:
+        """Reformats the CSV file to remove the Status ID (which is not useful for analysis).
+        Also, status type is now modified so that if a video is posted with a link in the
+        status, "w/link" is appended to the "Status Type". Also eliminated empty lines.  """
+        
         f=pandas.read_csv("todelete.csv") #error?
         keep_col = ["fbpage_url_code", "status_message", "link_name","status_type","status_link", "status_published", "num_reactions",
                         "num_comments", "num_shares", "num_likes", "num_loves",
                         "num_wows", "num_hahas", "num_sads", "num_angrys",
                         "num_special"]
         new_f = f[keep_col]
-        #new_f.to_csv("{}.csv".format(filename), index=False)
         new_f.to_csv("todelete1.csv", index=False)
-        #at this point, I have removed the status ID (which was generally
-        #not useful information for analysis purpose. 
-        #status type returned video if there was any type of video with the status,
-        #that's not what I want to analyze so I've fixed it by noting if a link is present in the code below
-        #also gets rid of blank lines
         
         self.createDictAnalysis(filename, totalProcessed) #filename
 
 
     def createDictAnalysis(self, filename, totalProcessed):
+        """Creates an array called storage which will be populated with CSV contents. 
+        Extracts URL from statuses and removes statuses without URLs. """
+        
         storage = []
         with open("todelete1.csv", mode='rb') as file:
         #with open("todelete1.csv", mode='r') as file:
@@ -127,16 +130,13 @@ class scraper():
             k+=1
             
         finalstorage = [d for d in storage if d[16] != None]
-
-            
-        #print(finalstorage)
                 
-                #at this point, the 16th position in the arrays has the links
-        #os.remove("todelete1.csv")
+        #at this point, the 16th position in the arrays has the links
         self.getArticlesText(finalstorage, filename, totalProcessed)
                             
             
     def getArticlesText(self, storage, filename, totalProcessed):
+        """Uses Newspaper module to extract article text, using URL's from statuses."""
         for entry in storage:
             entry[17] = "0"
         for entry in storage:
@@ -168,6 +168,7 @@ class scraper():
         self.sentimentAnalysis(storage, filename, totalProcessed)
             
     def sentimentAnalysis(self, storage, filename, totalProcessed):
+        """Performs sentiment analysis with Textblob on articles extracted."""
         for entry in storage:
             blob = TextBlob(entry[17])
             entry[18] = blob.sentiment     
@@ -219,6 +220,8 @@ class scraper():
         #writer = csv.writer(open("{}.csv".format(filename), 'w'))
         writer = csv.writer(open("{}.csv".format(filename), 'wb'))
         writer.writerows(eachrow)
+        
+        """COMMENTING HERE"""
         
         
         self.beginAnalysis(storage)  #otherwise, below the paragraph below

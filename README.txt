@@ -1,8 +1,6 @@
 # FBNewsAnalysis
 
-First, if you've somehow got this without me having sent it to you for feedback, please reach out to me with any
-questions/comments/advice/suggestions at amangrover1000@gmail.com! I had a lot of fun creating this, so I'd love to hear what you think
-about it. 
+First, if you've somehow got this without me having sent it to you for feedback, please reach out to me with any questions/comments/advice/suggestions at amangrover1000@gmail.com! I had a lot of fun creating this, so I'd love to hear what you think about it. 
 
 Alright, here's the important stuff - 
 

@@ -232,7 +232,7 @@ class gymscraper():
                         "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"] 
 
 
-        with open("todelete2.csv", 'wb') as file:
+        with open("KeysAsColumsForReference.csv", 'wb') as file:
             
             writefile = csv.DictWriter(file, storage[0].keys())
             writefile.writeheader()
@@ -240,11 +240,12 @@ class gymscraper():
             
             file.close()
             
-        r = realCSV.reader(open("todelete2.csv", encoding="utf8"))
+        r = realCSV.reader(open("KeysAsColumsForReference.csv", encoding="utf8"))
         eachrow = [l for l in r]
 
         for col in range(20):                                          
             eachrow[0][col] = renameCols[col]
+        
             
         #to remove blank lines so there aren't double blank lines
         writer = csv.writer(open("{}.csv".format(self.filename), 'wb'))
@@ -262,20 +263,21 @@ class gymscraper():
         Negative numbers imply it was before the election. Prints relevant statistical information.
         
         The list of dicts "storage" is passed as a parameter. """
+        
+        
+        
         #To determine correlation between polarity/subjectivity (separately) and the distance from the election
-        #First, determining relationships between p/s for 9 months before and after the election
+        #First, determining relationships between p/s before and after the election
         #Need to determine two regression lines for this before determining if there's a statistically significant difference
-        #between the two lines
+        #between the two lines (assuming we can show there is a linear relationship)
+        
         electiondate = datetime.datetime.strptime("2016-11-08",'%Y-%m-%d').date()  #November 8 2016 election date
         for entry in storage:
             entry[20] = datetime.datetime.strptime(entry[5][:-9],'%Y-%m-%d').date()
             entry[21] = (entry[20] - electiondate).days
 
         #NEW DICT VALUES: Regular Date [20], Days Before/After Election[21]
-        #newlist = sorted(storage, key=lambda k: k[21]) 
-        
-              
-            
+
         lengthlist = []
         #Determine number of unique values:
         for entry in storage:
@@ -576,4 +578,3 @@ class gymscraper():
         print(str(self.numRemoved) + " posts were deemed unsuitable for analysis.")
         os.remove("todelete.csv")
         os.remove("todelete1.csv")
-        os.remove("todelete2.csv")

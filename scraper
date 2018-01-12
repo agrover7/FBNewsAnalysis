@@ -10,11 +10,14 @@ import csv as realCSV
 from scipy import stats
 
 
-class scraper():
+
+class gymscraper():
 
     def __init__(self, pages_of_interest, access_token, start_date, end_date):
-        """constructor for the scraper, which takes in the list of news sources, 
-        user login information, and the date range between which to scrape posts"""
+        
+        """Purpose: Constructor for the scraper, to be instantiated in main class.
+        Parameters passed include: list with Facebook pages_of_interest (or string if there's just one),
+        user login information(access_token), and the date range between which to scrape posts (entered as YYYY-MM-DD)"""
         
         self.pages_of_interest = pages_of_interest
         self.access_token = access_token
@@ -22,45 +25,51 @@ class scraper():
         self.end_date = end_date
         self.fieldnames = ""
         self.numRemoved = 0
+        self.totalProcessed = 0
+        self.filename = ""
         
-    def reformatExcel(self, filename, totalProcessed):
+    def reformatExcel(self):
+        
         """Reformats the CSV file to remove the Status ID (which is not useful for analysis).
         Also, status type is now modified so that if a video is posted with a link in the
-        status, "w/link" is appended to the "Status Type". Also eliminated empty lines.  """
+        status, "w/link" is appended to the "Status Type". Also eliminated empty lines from CSV.   
         
-        f=pandas.read_csv("todelete.csv") #error?
+        No input parameters."""
+        
+        f=pandas.read_csv("todelete.csv")
         keep_col = ["fbpage_url_code", "status_message", "link_name","status_type","status_link", "status_published", "num_reactions",
                         "num_comments", "num_shares", "num_likes", "num_loves",
                         "num_wows", "num_hahas", "num_sads", "num_angrys",
                         "num_special"]
         new_f = f[keep_col]
         new_f.to_csv("todelete1.csv", index=False)
+        self.createDictAnalysis() 
         
-        self.createDictAnalysis(filename, totalProcessed) #filename
-
-
-    def createDictAnalysis(self, filename, totalProcessed):
+        
+    def createDictAnalysis(self):
+        
         """Creates an array called storage which will be populated with CSV contents. 
-        Extracts URL from statuses and removes statuses without URLs. """
+          This array will be used in all the following methods that do not deal with the Facebook Graph API directly.
+         Extracts URL from statuses and removes statuses without URLs. 
+         
+         No input parameters."""
+        
         
         storage = []
         with open("todelete1.csv", mode='rb') as file:
-        #with open("todelete1.csv", mode='r') as file:
-            reader = csv.DictReader(file, fieldnames = range(30))  
+            reader = csv.DictReader(file, fieldnames = range(20))
             for rows in reader:
                 storage.append(rows)
-            #for entry in storage:
-                #storage.remove(entry)
-                #break
+
             renameCols = ["News Source", "Status Content", "Link Name", "Type of Status",
                         "Status Link", "Date Published", "Total Reactions",
                         "Comments", "Shares", "Likes", "Love Reacts",
                         "Wow Reacts", "Haha Reacts", "Sad Reacts", "Angry Reacts",
-                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"]    
+                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"] 
             
             position = 0;
             for entry in storage:
-                while(position<20):     
+                while(position<20):  
                     entry[position] = renameCols[position]
                     position+=1
 
@@ -87,7 +96,7 @@ class scraper():
         
         file.close()        
              
-            #to remove the b and "" around the links, status, and article title now:
+        #to remove the b and "" around the links, status, and article title in the CSV file:
         for entry in storage:
             entry[4] = entry[4][2:-1]
             entry[2] = entry[2][2:-1]
@@ -101,9 +110,7 @@ class scraper():
                 entry[16] = match.group("url")
             else:
                 listtoremove.append(entry)
-                #storage.remove(entry)
-               # self.numRemoved +=1
-                                
+            
         i = 0
         value = ""
         length = len(storage)
@@ -130,13 +137,20 @@ class scraper():
             k+=1
             
         finalstorage = [d for d in storage if d[16] != None]
-                
+      
         #at this point, the 16th position in the arrays has the links
-        self.getArticlesText(finalstorage, filename, totalProcessed)
-                            
+        self.getArticlesText(finalstorage)
+
             
-    def getArticlesText(self, storage, filename, totalProcessed):
-        """Uses Newspaper module to extract article text, using URL's from statuses."""
+    def getArticlesText(self, storage):
+        
+        """Using the Newspaper API, extracts texts from all articles.
+        The URL's for these articles are the value for key 16 in the dicts.
+        Articles are stored in key 17 of the dicts.
+        
+        storage is passed as a parameter. storage is a list of dictionaries.
+        Each dictionary contains all the data for one status (likes, comments, haha reactions, URL, etc)."""
+        
         for entry in storage:
             entry[17] = "0"
         for entry in storage:
@@ -165,10 +179,17 @@ class scraper():
                 self.numRemoved+=1
             i+=1
         
-        self.sentimentAnalysis(storage, filename, totalProcessed)
+        self.sentimentAnalysis(storage)
             
-    def sentimentAnalysis(self, storage, filename, totalProcessed):
-        """Performs sentiment analysis with Textblob on articles extracted."""
+    def sentimentAnalysis(self, storage):
+        
+        """Performs sentiment analysis on articles, using Textblob API.
+        Articles are stored in key 17 of the dicts.
+        Sentiment analysis results are posted as values for key 18 and key 19 of dicts.
+        Key 18 is for polarity, key 19 is for subjectivity.
+        
+        The list of dicts "storage" is passed as a parameter."""
+        
         for entry in storage:
             blob = TextBlob(entry[17])
             entry[18] = blob.sentiment     
@@ -190,14 +211,25 @@ class scraper():
         for entry in storage:
             entry[19] = entry[18][1]
             entry[18] = entry[18][0]    
-        self.writeToExcel(storage, filename, totalProcessed)
+        self.writeToExcel(storage)
                 
-    def writeToExcel(self, storage, filename, totalProcessed):
+    def writeToExcel(self, storage):
+        
+        """A new, final CSV file is written here, under the filename specified by the user. 
+        This CSV file contains all the new data, such as article text, URL, and sentiment analysis,
+        that were not available from the Facebook Graph API. 
+        
+        The list of dicts "storage" is passed as a parameter. Each dictionary in storage
+        contains all the data for one status (likes, comments, haha reactions, URL, etc)
+        and represents a single line in the CSV file."""
+        
+        #The keys are all numeric (1,2,3, etc). This will be used to rename the 
+        #first row of the CSV file since (1,2,3, etc) are not useful column labels!
         renameCols = ["News Source", "Status Content", "Link Name", "Type of Status",
                         "Status Link", "Date Published", "Total Reactions",
                         "Comments", "Shares", "Likes", "Love Reacts",
                         "Wow Reacts", "Haha Reacts", "Sad Reacts", "Angry Reacts",
-                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"]  
+                        "Other Reacts", "Article URL", "Full Article Text", "Polarity", "Subjectivity"] 
 
 
         with open("todelete2.csv", 'wb') as file:
@@ -210,24 +242,26 @@ class scraper():
             
         r = realCSV.reader(open("todelete2.csv", encoding="utf8"))
         eachrow = [l for l in r]
-        
-        
-        for col in range(20):                                           
+
+        for col in range(20):                                          
             eachrow[0][col] = renameCols[col]
             
         #to remove blank lines so there aren't double blank lines
-            
-        #writer = csv.writer(open("{}.csv".format(filename), 'w'))
-        writer = csv.writer(open("{}.csv".format(filename), 'wb'))
+        writer = csv.writer(open("{}.csv".format(self.filename), 'wb'))
         writer.writerows(eachrow)
         
-        """COMMENTING HERE"""
         
-        
-        self.beginAnalysis(storage)  #otherwise, below the paragraph below
+        self.beginAnalysis(storage)
 
         
     def beginAnalysis(self, storage):
+        
+        """Performs all analysis. Creates a list of dicts with each dict 
+        containing the average data for each DAY. Average polarity, subjectivity, etc.
+        Graphs the data and its line of best fit. The x axis is the distance from the election. 
+        Negative numbers imply it was before the election. Prints relevant statistical information.
+        
+        The list of dicts "storage" is passed as a parameter. """
         #To determine correlation between polarity/subjectivity (separately) and the distance from the election
         #First, determining relationships between p/s for 9 months before and after the election
         #Need to determine two regression lines for this before determining if there's a statistically significant difference
@@ -237,7 +271,10 @@ class scraper():
             entry[20] = datetime.datetime.strptime(entry[5][:-9],'%Y-%m-%d').date()
             entry[21] = (entry[20] - electiondate).days
 
-
+        #NEW DICT VALUES: Regular Date [20], Days Before/After Election[21]
+        #newlist = sorted(storage, key=lambda k: k[21]) 
+        
+              
             
         lengthlist = []
         #Determine number of unique values:
@@ -260,8 +297,10 @@ class scraper():
                     analysisList[i][i][1] += float(entry[18])
                     analysisList[i][i][2] +=1
                     analysisList[i][i][3] += float(entry[19])
-           
+            
         
+        #ANALYSISLIST = Unique Distance [0], Total Polarity Sum [1], Num Terms in Date [2], Total Subjectivity Sum [3] 
+    
         xCoords = []
         yCoordsPolarity = []
         yCoordsSubjectivity = []
@@ -270,32 +309,28 @@ class scraper():
             yCoordsPolarity.append((analysisList[i][i][1]/analysisList[i][i][2]))
             yCoordsSubjectivity.append((analysisList[i][i][3]/analysisList[i][i][2]))
         
-        
-        
         fig = plt.figure()
 
-        
-        
         plt.plot(xCoords, yCoordsPolarity)
         regression1 = np.polyfit(xCoords, yCoordsPolarity, 1)
         slope1, intercept1, r_value1, p_value1, std_err1 = stats.linregress(xCoords, yCoordsPolarity)
 
-        
         xmin= min(xCoords) - 5
         xmax = max(xCoords) + 5
         xaxis = range(xmin,xmax)
         yaxis = [(slope1*var + intercept1) for var in xaxis]
+        
         #line of best fit
+        plt.plot([0,1],[0,1], linestyle='None', marker= ".", color= "red", markersize=8)
         
-        plt.plot(xCoords,yCoordsPolarity, linestyle='None', marker= ".", color= "red", markersize=8)
-
-        fig.suptitle("Article Polarity x", fontsize=15)
-        plt.xlabel('Days After Election', fontsize=8)
-        plt.ylabel('Polarity', fontsize=8)
         
+        fig.suptitle("This is to clear the graph. Please close this to continue.", fontsize=12)
+        plt.xlabel('This is to clear the graph. Please close this to continue.', fontsize=8)
+        plt.ylabel('This is to clear the graph. Please close this to continue.', fontsize=8)
         plt.show()
+        
+        
         fig = plt.figure()
-
         #above is just to clear it
         plt.plot(xCoords,yCoordsPolarity, linestyle='None', marker= ".", color= "red", markersize=8)
         #scatterplot
@@ -306,14 +341,12 @@ class scraper():
         plt.xlabel('Days After Election', fontsize=8)
         plt.ylabel('Polarity', fontsize=8)
         plt.show()
-        
         pylab.show()
+
 
 
         print("Polarity: ")
         print("Slope: " + str(slope1) + " Intercept: " + str(intercept1) + " p-Value: " + str(p_value1) + " Standard Error: " + str(std_err1) + " r-value: " + str(r_value1))
-        
-        
         print("Take screenshot and save image.")
         wait = raw_input("Enter something to indicate you have done so, please.")
         
@@ -323,9 +356,7 @@ class scraper():
 
         xaxis = range(xmin,xmax)
         yaxis = [(slope1*var + intercept1) for var in xaxis]
-      
-        
-      
+
         fig = plt.figure()
         
         plt.plot(xCoords,yCoordsSubjectivity, linestyle='None', marker= ".", color= "red", markersize=8)
@@ -343,13 +374,15 @@ class scraper():
         
         print("Subjectivity:")
         print("Slope: " + str(slope1) + " Intercept: " + str(intercept1) + " p-Value: " + str(p_value1) + " Standard Error: " + str(std_err1) + " r-value: " + str(r_value1))
-        
-        
         pylab.show()
-        
+ 
 
-  
     def request_data(self, url):
+        
+        """Performs a request to access the information at the URL.
+        
+        Takes the string url as a parameter. """
+        
         req = Request(url)
         success = False
         while success != True:
@@ -364,20 +397,31 @@ class scraper():
                 print("Error for: {}".format(url))
     
         return response.read()
-        
     
     
     def reformat_text(self, text):
+        
+        """Deals with potential unicode errors by encoding all contents to utf-8"""
+        
         return text.translate({ 0x2018:0x27, 0x2019:0x27, 0x201C:0x22, 0x201D:0x22, 0xa0:0x20 }).encode('utf-8')
     
     
     def getPageURL(self, api_url):
+        
+        """Returns string needed to access relevant information for each status
+        
+        Takes api_url as a parameter. This variable consists of information such as date range and users Facebook Graph 
+        identification information to allow for API access."""
     
         appendtoURL = "&fields=message,link,created_time,type,name,id,comments.limit(0).summary(true),shares,reactions.limit(0).summary(true)"
         return api_url + appendtoURL
     
     
     def getStatusReactions(self, api_url):
+        
+        """Receives all reactions for the statuses as numerical values.
+        
+        Takes api_url as a parameter."""
     
         reaction_types = ['like', 'love', 'wow', 'haha', 'sad', 'angry']
         reactions_dict = {} 
@@ -389,7 +433,7 @@ class scraper():
     
             data = json.loads(self.request_data(url))['data']
     
-            data_processed = set()  # set() removes rare duplicates in statuses
+            data_processed = set()
             for status in data:
                 id = status['id']
                 count = status['reactions']['summary']['total_count']
@@ -405,12 +449,15 @@ class scraper():
     
     
     def processStatus(self, status, fbpage_url_code):
-    
+        
+        """Processes the status information, including date, message, link to status, # of comments, etc.
+        Essentially, everything collected, other than the reactions data.
+        
+        Takes as a parameter: status (dict for each status posted) and fbpage_url_code (the extension such as "CNN" added at the end of the URL."""
     
         status_id = status['id']
         status_type = status['type']
         
-        #To see if there is any content in the post:
         status_message = '' if 'message' not in status else \
             self.reformat_text(status['message'])
         link_name = '' if 'name' not in status else \
@@ -421,9 +468,9 @@ class scraper():
         status_published = datetime.datetime.strptime(
             status['created_time'], '%Y-%m-%dT%H:%M:%S+0000')
         status_published = status_published + \
-            datetime.timedelta(hours=-5)  # EST
+            datetime.timedelta(hours=-5)  
         status_published = status_published.strftime(
-            '%Y-%m-%d %H:%M:%S') 
+            '%Y-%m-%d %H:%M:%S')      
     
         num_reactions = 0 if 'reactions' not in status else \
             status['reactions']['summary']['total_count']
@@ -437,19 +484,25 @@ class scraper():
   
   
     def scrapeStatus(self, pages_of_interest, access_token, start_date, end_date):
-        totalProcessed = 0
+        
+        """Write all collected data from API to an excel file. Utilizes other methods to access information.
+        
+        Takes as parameters: the list pages_of_interest, the access_token for each user to access the API based on the developer account,
+        and the start and end dates."""
+        
+        self.totalProcessed = 0
         todelete = "todelete"
-        filename = raw_input("Please provide a file name: ")
+        self.filename = raw_input("Please provide a file name: ")
         
         with open('{}.csv'.format(todelete), 'wb') as file:            
             w = csv.writer(file)
+            
             
             w.writerow(["fbpage_url_code", "status_id", "status_message", "link_name", "status_type",
                         "status_link", "status_published", "num_reactions",
                         "num_comments", "num_shares", "num_likes", "num_loves",
                         "num_wows", "num_hahas", "num_sads", "num_angrys",
                         "num_special"])
-            
             
             for fbpage_url_code in pages_of_interest:
                           
@@ -480,7 +533,6 @@ class scraper():
         
                     for status in statuses['data']:
         
-                        # Ensure it is a status with the expected metadata
                         if 'reactions' in status:
                             status_data = self.processStatus(status, fbpage_url_code)
                             reactions_data = reactions[status_data[1]]
@@ -493,26 +545,28 @@ class scraper():
                             print("{} Statuses Processed: {}".format
                                   (numProcessed, datetime.datetime.now()))
         
-                    
-                    # if there is no next page, we're done.
                     if 'paging' in statuses:
                         after = statuses['paging']['cursors']['after']
                     else:
                         has_next_page = False
         
-                totalProcessed +=numProcessed
+                self.totalProcessed +=numProcessed
                 print("\nDone! {} Statuses Processed in {} for page: {}".format(numProcessed, datetime.datetime.now() - scrape_starttime, fbpage_url_code))
                 print("")
         
         file.close()       
-        self.reformatExcel(filename, totalProcessed)
-        self.concludingInfo(totalProcessed, pages_of_interest)
+        self.reformatExcel()
+        self.concludingInfo(pages_of_interest)
         
         
-    def concludingInfo(self, totalProcessed, pages_of_interest):
+    def concludingInfo(self, pages_of_interest):
+        """Prints out the concluding information about how many statuses were analyzed, and from where. Deletes any non-useful CSV files.
+        The file with the file name the user specified is NOT deleted.
+        
+        Takes the list page_of_interest as parameter."""
         print()        
 
-        print("You have processed a total of {} usable statuses from the following sources:".format(totalProcessed - self.numRemoved))
+        print("You have processed a total of {} usable statuses from the following sources:".format(self.totalProcessed - self.numRemoved))
         for source in pages_of_interest:
             if(source != pages_of_interest[len(pages_of_interest)-1]):
                 print (source, end= ", ")
@@ -523,4 +577,3 @@ class scraper():
         os.remove("todelete.csv")
         os.remove("todelete1.csv")
         os.remove("todelete2.csv")
- 

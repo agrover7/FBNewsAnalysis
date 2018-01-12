@@ -30,7 +30,7 @@ class gymscraper():
         
     def reformatExcel(self):
         
-        """Reformats the CSV file to remove the Status ID (which is not useful for analysis).
+        """Purpose: Reformats the CSV file to remove the Status ID (which is not useful for analysis).
         Also, status type is now modified so that if a video is posted with a link in the
         status, "w/link" is appended to the "Status Type". Also eliminated empty lines from CSV.   
         
@@ -48,7 +48,7 @@ class gymscraper():
         
     def createDictAnalysis(self):
         
-        """Creates an array called storage which will be populated with CSV contents. 
+        """Purpose: Creates an array called storage which will be populated with CSV contents. 
           This array will be used in all the following methods that do not deal with the Facebook Graph API directly.
          Extracts URL from statuses and removes statuses without URLs. 
          
@@ -144,7 +144,7 @@ class gymscraper():
             
     def getArticlesText(self, storage):
         
-        """Using the Newspaper API, extracts texts from all articles.
+        """Purpose: Using the Newspaper API, extracts texts from all articles.
         The URL's for these articles are the value for key 16 in the dicts.
         Articles are stored in key 17 of the dicts.
         
@@ -183,7 +183,7 @@ class gymscraper():
             
     def sentimentAnalysis(self, storage):
         
-        """Performs sentiment analysis on articles, using Textblob API.
+        """Purpose: Performs sentiment analysis on articles, using Textblob API.
         Articles are stored in key 17 of the dicts.
         Sentiment analysis results are posted as values for key 18 and key 19 of dicts.
         Key 18 is for polarity, key 19 is for subjectivity.
@@ -215,7 +215,7 @@ class gymscraper():
                 
     def writeToExcel(self, storage):
         
-        """A new, final CSV file is written here, under the filename specified by the user. 
+        """Purpose: A new, final CSV file is written here, under the filename specified by the user. 
         This CSV file contains all the new data, such as article text, URL, and sentiment analysis,
         that were not available from the Facebook Graph API. 
         
@@ -223,7 +223,9 @@ class gymscraper():
         contains all the data for one status (likes, comments, haha reactions, URL, etc)
         and represents a single line in the CSV file."""
         
-        #The keys are all numeric (1,2,3, etc). This will be used to rename the 
+        
+        
+        #The keys are all numeric (1,2,3, etc). renameCols will be used to rename the
         #first row of the CSV file since (1,2,3, etc) are not useful column labels!
         renameCols = ["News Source", "Status Content", "Link Name", "Type of Status",
                         "Status Link", "Date Published", "Total Reactions",
@@ -257,7 +259,7 @@ class gymscraper():
         
     def beginAnalysis(self, storage):
         
-        """Performs all analysis. Creates a list of dicts with each dict 
+        """Purpose: Performs all analysis. Creates a list of dicts with each dict 
         containing the average data for each DAY. Average polarity, subjectivity, etc.
         Graphs the data and its line of best fit. The x axis is the distance from the election. 
         Negative numbers imply it was before the election. Prints relevant statistical information.
@@ -381,7 +383,7 @@ class gymscraper():
 
     def request_data(self, url):
         
-        """Performs a request to access the information at the URL.
+        """Purpose: Performs a request to access the information at the URL.
         
         Takes the string url as a parameter. """
         
@@ -403,14 +405,14 @@ class gymscraper():
     
     def reformat_text(self, text):
         
-        """Deals with potential unicode errors by encoding all contents to utf-8"""
+        """Purpose: Deals with potential unicode errors by encoding all contents to utf-8"""
         
         return text.translate({ 0x2018:0x27, 0x2019:0x27, 0x201C:0x22, 0x201D:0x22, 0xa0:0x20 }).encode('utf-8')
     
     
     def getPageURL(self, api_url):
         
-        """Returns string needed to access relevant information for each status
+        """Purpose: Returns string needed to access relevant information for each status
         
         Takes api_url as a parameter. This variable consists of information such as date range and users Facebook Graph 
         identification information to allow for API access."""
@@ -421,7 +423,7 @@ class gymscraper():
     
     def getStatusReactions(self, api_url):
         
-        """Receives all reactions for the statuses as numerical values.
+        """Purpose: Receives all reactions for the statuses as numerical values.
         
         Takes api_url as a parameter."""
     
@@ -452,7 +454,7 @@ class gymscraper():
     
     def processStatus(self, status, fbpage_url_code):
         
-        """Processes the status information, including date, message, link to status, # of comments, etc.
+        """Purpose: Processes the status information, including date, message, link to status, # of comments, etc.
         Essentially, everything collected, other than the reactions data.
         
         Takes as a parameter: status (dict for each status posted) and fbpage_url_code (the extension such as "CNN" added at the end of the URL."""
@@ -487,7 +489,7 @@ class gymscraper():
   
     def scrapeStatus(self, pages_of_interest, access_token, start_date, end_date):
         
-        """Write all collected data from API to an excel file. Utilizes other methods to access information.
+        """Purpose: Write all collected data from API to an excel file. Utilizes other methods to access information.
         
         Takes as parameters: the list pages_of_interest, the access_token for each user to access the API based on the developer account,
         and the start and end dates."""
@@ -562,7 +564,7 @@ class gymscraper():
         
         
     def concludingInfo(self, pages_of_interest):
-        """Prints out the concluding information about how many statuses were analyzed, and from where. Deletes any non-useful CSV files.
+        """Purpose: Prints out the concluding information about how many statuses were analyzed, and from where. Deletes any non-useful CSV files.
         The file with the file name the user specified is NOT deleted.
         
         Takes the list page_of_interest as parameter."""

@@ -67,7 +67,7 @@ Important things to note about this code:
 
 3. When calculating the degrees of freedom for statistical analysis, the regression equations each have the number of days as the number of data points. The regression lines are based on the scatter plot points which indicate the MEAN polarity/subjectivity for each day.
 
-4. Negative number of days means the dates are before the election. This is fine, and intentional. The regression line is still accurate, and it makes the data clearer when comparing before/after election results. 
+4. Negative number of days means the dates are before the election. This is fine and intentional. The regression line is still accurate, and it makes the data clearer when comparing before/after election results. 
 
 5. The x axis will indicate the number of days before or after the 2016 presidential election unless you change it in the beginAnalysis method to indicate a different starting point as your date.
 

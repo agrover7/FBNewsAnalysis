@@ -61,7 +61,7 @@ At some point, the code will stop running and display a blank graph. You can clo
 
 Important things to note about this code:
 
-1. Once it finishes running, you will find two Excel files on your computer (location depends on your IDE workspace setup). The one with the filename you indicated has all the information used prior to the beginAnalysis method. The other one has the first row numbered 1-20, and can help determine the keys for the list of dicts more easily if the code is being edited for another purpose (each row in the CSV file is one dict from a list of dicts). 
+1. Once it finishes running, you will find two Excel files on your computer (their storage location depends on your workspace setup). The one with the filename you indicated has all the information used prior to the beginAnalysis method. The other one has the first row numbered 1-20, and can help determine the keys for the list of dicts more easily if the code is being edited for another purpose (each row in the CSV file is one dict from a list of dicts). 
 
 2. There will be occasional gaps in the dates of the posts collected (as in, some dates will be missing). This is a problem with the Facebook Graph API that the company has acknowledged (https://developers.facebook.com/bugs/1838195226492053/).
 

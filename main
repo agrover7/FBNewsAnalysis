@@ -11,13 +11,13 @@ class main(object):
         ID = "XXXXXXXXXXXXXXXX"
         app_code = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # DO NOT SHARE WITH ANYONE!
         
-        #enter dates as: year month day
+        #enter dates as: year month day (YYYY-MM-DD)
         start_date = "2016-11-08"
         end_date = "2017-05-08"
         
         access_token = ID + "|" + app_code
     
-        #Facebook url's are not case sensitive for this portion
+        #Facebook url's are not case sensitive for this portion. Add and remove pages as you'd like.
         #list can be edited to any number of Facebook pages (>= 1)
         pages_of_interest = ["CNN", "NYTimes", "Breitbart", "MSNBC", "WSJ", "HuffPost", "Time", "ABCNews", "FoxNews", "YahooNews"]
 

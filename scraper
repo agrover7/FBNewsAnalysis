@@ -16,6 +16,7 @@ class gymscraper():
     def __init__(self, pages_of_interest, access_token, start_date, end_date):
         
         """Purpose: Constructor for the scraper, to be instantiated in main class.
+        
         Parameters passed include: list with Facebook pages_of_interest (or string if there's just one),
         user login information(access_token), and the date range between which to scrape posts (entered as YYYY-MM-DD)"""
         

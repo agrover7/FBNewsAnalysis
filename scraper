@@ -458,7 +458,7 @@ class gymscraper():
         """Purpose: Processes the status information, including date, message, link to status, # of comments, etc.
         Essentially, everything collected, other than the reactions data.
         
-        Takes as a parameter: status (dict for each status posted) and fbpage_url_code (the extension such as "CNN" added at the end of the URL."""
+        Takes as a parameter: status (dict for each status posted) and fbpage_url_code (the extension such as "CNN" added at the end of the URL)."""
     
         status_id = status['id']
         status_type = status['type']

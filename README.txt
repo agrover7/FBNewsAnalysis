@@ -71,4 +71,4 @@ Important things to note about this code:
 
 5. The x axis will indicate the number of days before or after the 2016 presidential election unless you change it in the beginAnalysis method to indicate a different starting point as your date.
 
-6. Each status will take 1 second to process, which can help you decide how long the code will take to run. This was done by design because the articles wouldn't finish parsing unless I let the code pause for at least one second, and data points were resultingly lost.
+6. Each status will take 1 second to process, which can help you decide how long the code will take to run. This was done by design because the Textblob wouldn't finish parsing the articles unless I let the code pause for at least one second. 

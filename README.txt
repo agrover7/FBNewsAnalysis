@@ -31,7 +31,7 @@ A negative polarity score of any form means the content is overall negative.
 I've included some sentences below as examples:
 
 A polar sentence that is not subjective: The charity was able to help many people with all the generous donations it recieved.
-The same sentence, slighltly less positively polar: The charity was able to help many impoverished people with all the generous donations it recieved. (The presence of the word impoverished will lower the overall positivity of the article). 
+The same sentence, slightly less positively polar: The charity was able to help many impoverished people with all the generous donations it recieved. (The presence of the word impoverished will lower the overall positivity of the article). 
 A completely non-polar statement, non-subjective: The ball is blue.
 Subjective sentences will undoubtedly affect polarity (saying "I am happy" or any word of feeling would affect the positivity or negativity based on the emotion).
 

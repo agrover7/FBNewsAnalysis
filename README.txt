@@ -5,7 +5,7 @@ If you've got any feedback, please reach out to me with any questions/comments/a
 Alright, here's the important stuff - 
 
 Attributions:
-I learned how to access the Facebook Graph API from an article by Max Woolf. This is a straightforward process that can't really be altered (unless you're changing how the information is stored), and so I utilized some of his code (appropriately as per its license). Most of scrapeStatus, processStatus, getStatusReactions, and all 12 lines of requestStatus are attributable to him (https://github.com/minimaxir/facebook-page-post-scraper/blob/master/get_fb_posts_fb_page.py)
+I learned how to access the Facebook Graph API from an article by Max Woolf. This is a straightforward process that can't really be altered (unless you're changing how the information is stored), and so I utilized some of his code (appropriately as per its license). Most of scrapeStatus, processStatus, getStatusReactions, and all 12 lines of requestStatus are attributable to him (https://github.com/minimaxir/facebook-page-post-scraper/blob/master/get_fb_posts_fb_page.py). The majority of this code, though, is entirely original. 
 
 
 
